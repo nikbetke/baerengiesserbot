@@ -115,7 +115,7 @@ func main() {
 
 	// Telegram Updates abfragen
 	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 1
+	u.Timeout = 90
 	updates := bot.GetUpdatesChan(u)
 
 	// Endlosschleife: Nachrichten verarbeiten
