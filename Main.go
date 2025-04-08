@@ -33,6 +33,7 @@ func resetUserDone() {
 
 func main() {
 
+	globalcounter := 0
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal(".env file not found!")
@@ -85,27 +86,30 @@ func main() {
 	// Cron-Job initialisieren – der Job wird jeden Tag um 20:00 (Berliner Zeit) ausgeführt.
 	c := cron.New(cron.WithLocation(berlinLoc))
 	_, err = c.AddFunc("0 20 * * *", func() {
-		// Status der Nutzer abfragen
-		mu.Lock()
-		user1Status := userDone[user1ID]
-		user2Status := userDone[user2ID]
-		mu.Unlock()
+		if globalcounter == 3 {
+			// Status der Nutzer abfragen
+			mu.Lock()
+			user1Status := userDone[user1ID]
+			user2Status := userDone[user2ID]
+			mu.Unlock()
 
-		// Falls beide Nutzer nicht "gemacht" geschrieben haben, sende eine Benachrichtigung
-		if !user1Status && !user2Status {
-			msgText := "Leute bitte einmal die Blumen gießen, was soll das?"
-			msg := tgbotapi.NewMessage(groupID, msgText)
-			if _, err := bot.Send(msg); err != nil {
-				log.Printf("Fehler beim Senden der Nachricht: %v", err)
+			// Falls beide Nutzer nicht "gemacht" geschrieben haben, sende eine Benachrichtigung
+			if !user1Status && !user2Status {
+				msgText := "Leute bitte einmal die Blumen gießen, was soll das?"
+				msg := tgbotapi.NewMessage(groupID, msgText)
+				if _, err := bot.Send(msg); err != nil {
+					log.Printf("Fehler beim Senden der Nachricht: %v", err)
+				} else {
+					log.Println("Erinnerung erfolgreich versendet.")
+				}
 			} else {
-				log.Println("Erinnerung erfolgreich versendet.")
+				log.Println("Mindestens ein Nutzer hat 'gemacht' geschrieben – keine Erinnerung gesendet.")
 			}
-		} else {
-			log.Println("Mindestens ein Nutzer hat 'gemacht' geschrieben – keine Erinnerung gesendet.")
-		}
 
-		// Zustand für den nächsten Tag zurücksetzen
-		resetUserDone()
+			// Zustand für den nächsten Tag zurücksetzen
+			resetUserDone()
+		}
+		globalcounter = (globalcounter + 1) % 3
 	})
 	if err != nil {
 		log.Fatalf("Fehler beim Planen des Cron-Jobs: %v", err)
